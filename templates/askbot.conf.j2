@@ -1,0 +1,50 @@
+#WSGISocketPrefix ${APACHE_RUN_DIR}
+WSGIPythonHome /usr
+#WSGIPythonPath /var/www/askbotsite
+WSGIPythonPath {{ DocumentRoot }}
+
+<VirtualHost *:80>
+     
+     #DocumentRoot /var/www/askbotsite
+     DocumentRoot {{ DocumentRoot }}
+     #ServerAdmin root@localhost
+     ServerAdmin {{ ServerAdmin }}
+     #ServerName initcronqa.com
+     ServerName {{ ServerName }}
+     #ServerAlias www.initcronqa.com
+     ServerAlias www.{{ ServerName }}
+
+     #aliases to serve static media directly
+     #will probably need adjustment
+     #Alias /m/ /var/www/askbotsite/static/
+     Alias /m/ {{ DocumentRoot }}/static/
+     #Alias /upfiles/  /var/www/askbotsite/askbot/upfiles/
+     Alias /upfiles/  {{ DocumentRoot }}/askbot/upfiles/
+     #Alias /admin/ /var/www/askbotsite/askbot/admin/
+     Alias /admin/ {{ DocumentRoot }}/askbot/admin/
+     #<DirectoryMatch "/var/www/askbotsite/askbot/skins/([^/]+)/media">
+      #  Require all granted
+     #</DirectoryMatch>
+     #<Directory "/var/www/askbotsite/askbot/upfiles">
+      #  Require all granted
+     #</Directory>
+     <DirectoryMatch "{{ DocumentRoot }}/askbot/skins/([^/]+)/media">
+        Require all granted
+     </DirectoryMatch>
+     <Directory "{{ DocumentRoot }}/askbot/upfiles">
+        Require all granted
+     </Directory>
+     #must be a distinct name within your apache configuration
+     WSGIDaemonProcess askbot2 user=www-data group=www-data
+     WSGIProcessGroup askbot2
+     WSGIApplicationGroup %{GLOBAL}
+     WSGIScriptAlias / {{ DocumentRoot }}/django.wsgi
+     #make all admin stuff except media go through secure connection
+    <LocationMatch "/admin(?!/media)">
+      RewriteEngine on
+        RewriteRule /admin(.*)$ https://localhost/admin$1 [L,R=301]
+     </LocationMatch>
+     CustomLog /var/log/apache2/access_log common
+     ErrorLog /var/log/apache2/error_log
+     LogLevel debug
+</VirtualHost>

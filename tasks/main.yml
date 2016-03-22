@@ -1,0 +1,71 @@
+---
+# tasks file for askbot
+
+   - name: Updating cache
+     apt: update_cache=yes
+   - name: Insatll pip
+     apt: name=python-pip state=present
+   - name: Install python setuptools
+     apt: name=python-setuptools state=present
+   - name: Install python development tools
+     apt: name=python-dev state=present 
+   - name: Update setuptools
+     pip: name=setuptools state=latest
+   - name: Installing Python Imaging
+     apt: pkg=python-imaging state=build-dep
+   - name: Installing Billiard
+     pip: name=billiard state=present
+   - name: Installing kombu
+     pip: name=kombu state=present
+   - name: Installing Askbot
+     pip: name=askbot state=present
+   - name: MYSQL Password before installing mysql server
+     debconf: name='mysql-server' question='mysql-server/root_password' value=Password-1 vtype='password'
+   - name: Confirming MYSQL Password
+     debconf: name='mysql-server' question='mysql-server/root_password_again' value=Password-1 vtype='password'
+   - name: Install mysql
+     apt: package={{ item }} state=present
+     with_items:
+        - mysql-server
+        - libmysqlclient-dev
+   - name: Installing mysql-python
+     pip: name=mysql-python state=present
+   - name: Creating database on mysql
+     shell: mysql -u root -pPassword-1 -e "create database askbot DEFAULT CHARACTER SET UTF8 COLLATE utf8_general_ci"
+   - name: Granting privileges to the database
+     shell: mysql -u root -pPassword-1 -e "grant all privileges on askbot.* to root@localhost identified by 'Password-1'"
+   - name: Restarting mysql service
+     service: name=mysql state=restarted
+   - name: Installing apache2 and mod-wsgi
+     apt: package={{ item }} state=present
+     with_items:
+        - apache2
+        - libapache2-mod-wsgi
+   - name: Creating directory to setup askbot
+     file: path={{ DocumentRoot }} state=directory
+   - name: Setting up askbot
+     shell: askbot-setup -n . -e 3 -d askbot -u root -p Password-1 chdir={{ DocumentRoot }} creates=django.wsgi
+   - name: Syncing DB
+     shell: python manage.py syncdb --noinput chdir={{ DocumentRoot }}
+   - name: Migrating askbot DB
+     shell: python manage.py migrate askbot chdir={{ DocumentRoot }}
+   - name: Migrating authopenid
+     shell: python manage.py migrate django_authopenid chdir={{ DocumentRoot }}
+   - name: Collecting static files for the web UI
+     shell: python manage.py collectstatic --noinput chdir={{ DocumentRoot }}
+   - name: Changing the ownership of askbotsite directory
+     file: path={{ DocumentRoot }} state=directory owner=root group=www-data recurse=yes
+   - name: Changing permissions of upfiles
+     file: path={{ DocumentRoot }}/askbot/upfiles mode=0775 recurse=yes
+   - name: Changing permissions of logs
+     file: path={{ DocumentRoot }}/log mode=0775 recurse=yes
+   - name: Enabling rewrite module
+     apache2_module: name=rewrite state=present
+   - name: Disabling the default site
+     shell: a2dissite 000-default.conf chdir=/etc/apache2/sites-available
+   - name: Creating virtual host file for askbot
+     template: src=/Users/druva/ansible/askbot/templates/askbot.conf.j2 dest=/etc/apache2/sites-available/askbot.conf
+   - name: Enabling askbot site
+     shell: a2ensite askbot.conf chdir=/etc/apache2/sites-available
+   - name: Restarting apache service
+     service: name=apache2 state=restarted

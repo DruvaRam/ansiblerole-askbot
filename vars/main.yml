@@ -1,0 +1,7 @@
+---
+# vars file for askbot
+
+DocumentRoot: /var/www/askbotsite
+ServerAdmin: root@localhost
+ServerName: initcronqa.com
+
