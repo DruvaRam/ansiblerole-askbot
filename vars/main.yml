@@ -4,4 +4,4 @@
 DocumentRoot: /var/www/askbotsite
 ServerAdmin: root@localhost
 ServerName: initcronqa.com
-
+TemplatePath: /Users/druva/ansible/askbot/templates

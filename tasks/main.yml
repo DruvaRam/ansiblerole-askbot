@@ -64,7 +64,7 @@
    - name: Disabling the default site
      shell: a2dissite 000-default.conf chdir=/etc/apache2/sites-available
    - name: Creating virtual host file for askbot
-     template: src=/Users/druva/ansible/askbot/templates/askbot.conf.j2 dest=/etc/apache2/sites-available/askbot.conf
+     template: src={{ TemplatePath }}/askbot.conf.j2 dest=/etc/apache2/sites-available/askbot.conf
    - name: Enabling askbot site
      shell: a2ensite askbot.conf chdir=/etc/apache2/sites-available
    - name: Restarting apache service
